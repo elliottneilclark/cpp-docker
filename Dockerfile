@@ -34,17 +34,29 @@ RUN apt-get update && \
   	ant \
 	  curl \
     g++-5 && \
+    unzip && \
     apt-get clean
 
 # Download and install folly, build with default tools
-RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly && \
- cd /usr/src/folly/folly && \
- autoreconf -ivf && \
- CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
- make && \
- make install && \
- make clean
-# RUN make check
+#RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly && \
+# cd /usr/src/folly/folly && \
+# autoreconf -ivf && \
+# CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
+# make && \
+# make install && \
+# make clean
+## RUN make check
+
+# Download and install proxygen, build with default tools
+RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
+  cd /usr/src/proxygen && \
+  CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./deps.sh && \
+  make clean && \
+  cd folly/folly && \
+  make clean && \
+  cd wangle/wangle && \
+  make clean
+
 
 # Download and install watchman, build with default tools
 RUN git clone --depth 1 --branch v3.8.0 https://github.com/facebook/watchman.git /usr/src/watchman && \
