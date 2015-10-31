@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:15.10
 
 # Accept the oracle java license
 RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
@@ -13,6 +13,7 @@ RUN apt-get update && \
     automake \
     autoconf \
     autoconf-archive \
+	cmake \
     libtool \
     libboost-all-dev \
     libevent-dev \
@@ -34,33 +35,57 @@ RUN apt-get update && \
     ant \
     curl \
     g++-5 \ 
+flex \
+bison \
+libkrb5-dev \
+libsasl2-dev \
+libnuma-dev \
+pkg-config \
+libcap-dev \
+gperf \
+wget \
     unzip && \
     apt-get clean
 
 # Download and install folly, build with default tools
-#RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly && \
-# cd /usr/src/folly/folly && \
-# autoreconf -ivf && \
-# CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
-# make && \
-# make install && \
-# make clean
-## RUN make check
+RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly && \
+ cd /usr/src/folly/folly && \
+ autoreconf -ivf && \
+ CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
+ make && \
+ make install && \
+ make clean
+# RUN make check
+
+# Download and install wangle, build with default tools
+RUN git clone --depth 1 https://github.com/facebook/wangle.git /usr/src/wangle
+RUN cd /usr/src/wangle/wangle
+RUN CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" cmake .
+RUN make -j8
+RUN make install
+RUN ldconfig
+
+RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen
+RUN cd /usr/src/proxygen
+RUN autoreconf -ivf
+RUN CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 CFLAGS="-latomic" CXXFLAGS="-latomic" ./configure
+RUN make -j 8
+RUN make install
 
 # Download and install proxygen, build with default tools
-RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
-  cd /usr/src/proxygen/proxygen && \
-  CMAKE_CXX_COMPILER=/usr/bin/g++-5 \
-	CMAKE_C_COMPILER=/usr/bin/gcc-5 \
-	CXX=/usr/bin/g++-5 \ 
-	CC=/usr/bin/gcc-5 \
-	CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" \
-	CFLAGS="-latomic" CXX_FLAGS="-latomic" ./deps.sh && \
-  make clean && \
-  cd folly/folly && \
-  make clean && \
-  cd wangle/wangle && \
-  make clean
+#RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
+#  cd /usr/src/proxygen/proxygen && \
+#  CMAKE_CXX_COMPILER=/usr/bin/g++-5 \
+#	CMAKE_C_COMPILER=/usr/bin/gcc-5 \
+#	CXX=/usr/bin/g++-5 \ 
+#	CC=/usr/bin/gcc-5 \
+#	CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" \
+#	CFLAGS="-latomic" CXX_FLAGS="-latomic" ./deps.sh && \
+#  make clean && \
+#  cd folly/folly && \
+#  make clean && \
+#  cd wangle/wangle && \
+#  make clean
 
 
 # Download and install watchman, build with default tools
