@@ -31,9 +31,9 @@ RUN apt-get update && \
     libgtest-dev \
     git \
     oracle-java8-installer \
-  	ant \
-	  curl \
-    g++-5 && \
+    ant \
+    curl \
+    g++-5 \ 
     unzip && \
     apt-get clean
 
@@ -49,8 +49,13 @@ RUN apt-get update && \
 
 # Download and install proxygen, build with default tools
 RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
-  cd /usr/src/proxygen && \
-  CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./deps.sh && \
+  cd /usr/src/proxygen/proxygen && \
+  CMAKE_CXX_COMPILER=/usr/bin/g++-5 \
+	CMAKE_C_COMPILER=/usr/bin/gcc-5 \
+	CXX=/usr/bin/g++-5 \ 
+	CC=/usr/bin/gcc-5 \
+	CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" \
+	CFLAGS="-latomic" CXX_FLAGS="-latomic" ./deps.sh && \
   make clean && \
   cd folly/folly && \
   make clean && \
