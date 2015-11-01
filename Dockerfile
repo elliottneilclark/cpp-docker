@@ -4,12 +4,12 @@ FROM ubuntu:15.10
 RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
 
 # Install all of the prerequisites for folly, and install g++-5 to get c++14 features
-RUN apt-get update && \
- apt-get -y install software-properties-common python-software-properties && \
- apt-add-repository ppa:ubuntu-toolchain-r/test && \
- add-apt-repository ppa:webupd8team/java && \
- apt-get update  && \
- apt-get -y install \ 
+RUN apt-get update 
+RUN apt-get -y install software-properties-common python-software-properties 
+RUN apt-add-repository ppa:ubuntu-toolchain-r/test 
+RUN add-apt-repository ppa:webupd8team/java 
+RUN apt-get update  
+RUN apt-get -y install \ 
     automake \
     autoconf \
     autoconf-archive \
@@ -44,29 +44,34 @@ pkg-config \
 libcap-dev \
 gperf \
 wget \
-    unzip && \
-    apt-get clean
+    unzip 
+RUN apt-get clean
 
 # Download and install folly, build with default tools
-RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly && \
- cd /usr/src/folly/folly && \
- autoreconf -ivf && \
- CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
- make && \
- make install && \
- make clean
+RUN git clone --depth 1 https://github.com/facebook/folly.git /usr/src/folly 
+#RUN cd /usr/src/folly/folly 
+WORKDIR /usr/src/folly/folly
+RUN autoreconf -ivf 
+RUN CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure 
+RUN make 
+RUN make install 
+RUN make clean
+WORKDIR /root
 # RUN make check
 
 # Download and install wangle, build with default tools
-RUN git clone --depth 1 https://github.com/facebook/wangle.git /usr/src/wangle
-RUN cd /usr/src/wangle/wangle
+RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle
+#RUN cd /usr/src/wangle/wangle
+WORKDIR /usr/src/wangle/wangle
+RUN cd ../ && git checkout e15b84fd02ba8135927d54e8e586e6d8cc275f96
 RUN CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" cmake .
-RUN make -j8
+RUN CMAKE_CXX_FLAGS="-latomic" CMAKE_C_FLAGS="-latomic" CMAKE_EXE_LINKER_FLAGS="-latomic" make -j8
 RUN make install
 RUN ldconfig
 
 RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen
-RUN cd /usr/src/proxygen
+#RUN cd /usr/src/proxygen/proxygen
+WORKDIR /usr/src/proxygen/proxygen
 RUN autoreconf -ivf
 RUN CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 CFLAGS="-latomic" CXXFLAGS="-latomic" ./configure
 RUN make -j 8
@@ -89,24 +94,26 @@ RUN make install
 
 
 # Download and install watchman, build with default tools
-RUN git clone --depth 1 --branch v3.8.0 https://github.com/facebook/watchman.git /usr/src/watchman && \
- cd /usr/src/watchman && \
- ./autogen.sh && \
- CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure && \
- make && \
- make install && \
- make clean
+RUN git clone --depth 1 --branch v3.8.0 https://github.com/facebook/watchman.git /usr/src/watchman 
+#RUN cd /usr/src/watchman 
+WORKDIR /usr/src/watchman 
+RUN ./autogen.sh 
+RUN CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 ./configure 
+RUN make 
+RUN make install 
+RUN make clean
 
 # Download and install buck. Run it once so that it does its own first-run build process
 # Remove some extra files that end up being ~250M combined
-RUN git clone --depth 1 https://github.com/facebook/buck.git /usr/src/buck && \
- cd /usr/src/buck && \
- ant && \
- ln -s /usr/src/buck/bin/buck /usr/local/bin/buck && \
- ln -s /usr/src/buck/bin/buckd /usr/local/bin/buckd && \
- /usr/local/bin/buck --help; echo "" && \
- rm -rf /usr/src/buck/.git && \
- rm -rf /usr/src/buck/test
+RUN git clone --depth 1 https://github.com/facebook/buck.git /usr/src/buck 
+#RUN cd /usr/src/buck 
+WORKDIR /usr/src/buck 
+RUN ant 
+RUN ln -s /usr/src/buck/bin/buck /usr/local/bin/buck 
+RUN ln -s /usr/src/buck/bin/buckd /usr/local/bin/buckd 
+RUN /usr/local/bin/buck --help; echo "" 
+RUN rm -rf /usr/src/buck/.git 
+RUN rm -rf /usr/src/buck/test
 
 #RUN echo 'NO_BUCKD=1' >> /root/.bashrc 
 ADD helloworld /root/src/helloworld

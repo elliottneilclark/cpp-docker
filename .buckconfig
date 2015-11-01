@@ -1,2 +1,8 @@
 [cxx]
-  gtest_dep = //third-party/googletest/googletest:google-test
+  cc = /usr/bin/gcc-5
+  cpp = /usr/bin/gcc-5
+  ld = /usr/bin/g++-5
+  cxx = /usr/bin/g++-5
+  cxxpp = /usr/bin/g++-5
+  aspp = /usr/bin/gcc-5
+  cxxflags = -std=c++14
