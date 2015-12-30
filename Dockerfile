@@ -122,14 +122,32 @@ RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
 # Now that buck is installed time to make the buckconfig
 #
 RUN echo "[cxx]" >> /root/.buckconfig && \
-    echo "  cc     = ${CC}"  >> /root/.buckconfig && \
-    echo "  cpp    = ${CC}"  >> /root/.buckconfig && \
-    echo "  aspp   = ${CC}"  >> /root/.buckconfig && \
-    echo ""                  >> /root/.buckconfig && \
-    echo "  cxx    = ${CXX}" >> /root/.buckconfig && \
-    echo "  cxxpp  = ${CXX}" >> /root/.buckconfig && \
-    echo "  ld     = ${CXX}" >> /root/.buckconfig
-
+    echo "  cc     = ${CC}"                 >> /root/.buckconfig && \
+    echo "  cpp    = ${CC}"                 >> /root/.buckconfig && \
+    echo "  aspp   = ${CC}"                 >> /root/.buckconfig && \
+    echo ""                                 >> /root/.buckconfig && \
+    echo "  cxx    = ${CXX}"                >> /root/.buckconfig && \
+    echo "  cxxpp  = ${CXX}"                >> /root/.buckconfig && \
+    echo "  ld     = ${CXX}"                >> /root/.buckconfig && \
+    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer" >> /root/.buckconfig && \
+    echo "[cxx#gcc]" >> /root/.buckconfig && \
+    echo "  cc     = /usr/bin/gcc-5"        >> /root/.buckconfig && \
+    echo "  cpp    = /usr/bin/gcc-5"        >> /root/.buckconfig && \
+    echo "  aspp   = /usr/bin/gcc-5"        >> /root/.buckconfig && \
+    echo ""                                 >> /root/.buckconfig && \
+    echo "  cxx    = /usr/bin/g++-5"        >> /root/.buckconfig && \
+    echo "  cxxpp  = /usr/bin/g++-5"        >> /root/.buckconfig && \
+    echo "  ld     = /usr/bin/g++-5"        >> /root/.buckconfig && \
+    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer -Weffc++ -Wextra" >> /root/.buckconfig && \
+    echo "[cxx#clang]" >> /root/.buckconfig && \
+    echo "  cc     = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
+    echo "  cpp    = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
+    echo "  aspp   = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
+    echo ""                                 >> /root/.buckconfig && \
+    echo "  cxx    = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
+    echo "  cxxpp  = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
+    echo "  ld     = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
+    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer -Wextra" >> /root/.buckconfig
 # Right now, if buckd is enabled in virtualbox one of two things will happen:
 #  - If the project is mounted on a virtualbox shared folders dir,
 #    mmap will not work, and https://github.com/facebook/buck/blob/master/src/com/facebook/buck/cxx/ObjectFileScrubbers.java
