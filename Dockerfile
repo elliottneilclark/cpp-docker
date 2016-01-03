@@ -2,6 +2,8 @@ FROM ubuntu:15.10
 
 ARG CC=/usr/bin/gcc-5
 ARG CXX=/usr/bin/g++-5
+ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
+ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 
 ARG FOLLY_SHA=f2a8b592861472bf47495c40519fdd778b420bc1 
 ARG WANGLE_SHA=9ed41ea931c1039d2eb80b9152577bbe714f9b71
@@ -9,7 +11,6 @@ ARG PROXYGEN_SHA=d5721badd9e2a416036e2034112ea90c34918309
 ARG BUCK_SHA=82edf0bdbe63ef99cff17114458d4bd442a55fd7 
 ARG WATCHMAN_VER=v4.3.0
 ARG DEBIAN_FRONTEND=noninteractive
-
 
 # Accept the oracle java license
 RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
@@ -43,21 +44,19 @@ RUN apt-get -qq update && \
         bison \
         build-essential \
         clang-3.7 \
+        clang-format-3.7 \
         clang-tidy-3.7 \
         cmake \
         curl \
         flex \
         g++-5 \
+        gdb \
         gdc \
         git \
         gperf \
-        libboost-all-dev \
+        libbz2-dev \
         libcap-dev \
-        libdouble-conversion-dev \
         libevent-dev \
-        libgflags-dev \
-        libgoogle-glog-dev \
-        libgtest-dev \
         libjemalloc-dev \
         libkrb5-dev \
         liblz4-dev \
@@ -68,22 +67,121 @@ RUN apt-get -qq update && \
         libssl-dev \
         libtool \
         libunwind8-dev \
+        lldb \
         llvm-3.7-dev \
         make \
         oracle-java8-installer \
         pciutils \
         pkg-config \
+        python-dev \
         unzip \
         zlib1g-dev && \
     apt-get -qq clean && \
     apt-get -y -qq autoremove && \
-    rm -rf /var/cache/* && \
+    ln -s /usr/bin/clang-3.7 /usr/bin/clang && \
+    ln -s /usr/bin/clang++-3.7 /usr/bin/clang++ && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
     rm -rf /tmp/*
 
 # Don't use -j8 or anything like that that gcc errors out in unpredictable ways.
 # Better to have the docker build step take a little while longer than to error out.
 
+#
+# Build the Cpp libraries.
+# 
+# GCC 5.1 and libstdc++ devs are jerks.
+# They added in a a new abi tag without bumping soname
+# Because of that every c++ library needs to be compiled
+# by us without that feature so that switching between clang
+# and gcc works
+#
+RUN cd /usr/src && pwd && ls -alh && \
+    wget http://pkgs.fedoraproject.org/repo/pkgs/boost/boost_1_59_0.tar.bz2/6aa9a5c6a4ca1016edd0ed1178e3cb87/boost_1_59_0.tar.bz2 && \
+    tar xjf boost_1_59_0.tar.bz2 && \
+    cd boost_1_59_0 && \
+    ./bootstrap.sh --with-toolset=gcc && \
+    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j4 && \
+    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
+    ./b2 clean && \
+    rm -rf /usr/src/boost_1_59_0.tar.bz2
+
+RUN git clone https://github.com/google/double-conversion.git /usr/src/double-conversion && \
+    cd /usr/src/double-conversion && \
+    ldconfig && \
+    cmake -DBUILD_SHARED_LIBS=ON . && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/double-conversion/.git
+
+RUN git clone --depth 1 --branch v2.1.2 https://github.com/gflags/gflags.git /usr/src/gflags && \
+    cd /usr/src/gflags && \
+    ldconfig && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_STATIC_LIBS=ON \
+      -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_TESTING=ON . && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/gflags/.git
+    
+RUN git clone --depth 1 https://github.com/google/googletest.git /usr/src/googletest && \
+    cd /usr/src/googletest && \
+    ldconfig && \
+    cmake -Dgtest_build_samples=ON . && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/googletest/.git
+
+RUN git clone --depth 1 --branch v0.3.4 https://github.com/google/glog.git /usr/src/glog && \
+    cd /usr/src/glog && \
+    ldconfig && \
+    autoreconf -ivf && \
+    ./configure && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/glog/.git
+
+
+
+# Download and install folly, build with clang or gcc-5 
+RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
+	  cd /usr/src/folly/folly && \
+    git checkout ${FOLLY_SHA} && \
+    ldconfig && \
+    autoreconf -ivf && \
+    ./configure && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/folly/.git
+
+# Download and install wangle, build with clang or gcc-5 
+RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
+    cd /usr/src/wangle/wangle && \
+    git checkout ${WANGLE_SHA} && \
+    ldconfig && \
+    sed -i 's/fPIC/fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -O2 -g/' CMakeLists.txt && \
+    cmake -DBUILD_TESTS=OFF . && \
+    make && \
+    make install && \
+    make clean && \
+    rm -rf /usr/src/wangle/.git
+
+# Download and install proxygen, build with clang or gcc-5  
+RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
+    cd /usr/src/proxygen/proxygen && \
+    git checkout ${PROXYGEN_SHA} && \
+    ldconfig && \
+    autoreconf -ivf && \
+    ./configure && \
+    make && \
+    make install && \
+	  make clean && \
+    rm -rf /usr/src/proxygen/.git
 
 #
 # Build the tools
@@ -92,6 +190,7 @@ RUN apt-get -qq update && \
 # Download and install watchman, build with g++5 tools
 RUN git clone --depth 1 --branch ${WATCHMAN_VER} https://github.com/facebook/watchman.git /usr/src/watchman && \
     cd /usr/src/watchman && \
+    ldconfig && \
     ./autogen.sh && \
     ./configure && \
     make && \
@@ -114,6 +213,7 @@ RUN git clone https://github.com/facebook/buck.git /usr/src/buck && \
 # Flint
 RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
     cd /usr/src/flint/flint && \
+    ldconfig && \
     make && \
     ln -s /usr/src/flint/flint/flint++ /usr/local/bin/flint++ 
   
@@ -129,7 +229,7 @@ RUN echo "[cxx]" >> /root/.buckconfig && \
     echo "  cxx    = ${CXX}"                >> /root/.buckconfig && \
     echo "  cxxpp  = ${CXX}"                >> /root/.buckconfig && \
     echo "  ld     = ${CXX}"                >> /root/.buckconfig && \
-    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer" >> /root/.buckconfig && \
+    echo "  cxxflags = -std=c++14 ${CXXFLAGS}" >> /root/.buckconfig && \
     echo "[cxx#gcc]" >> /root/.buckconfig && \
     echo "  cc     = /usr/bin/gcc-5"        >> /root/.buckconfig && \
     echo "  cpp    = /usr/bin/gcc-5"        >> /root/.buckconfig && \
@@ -138,7 +238,7 @@ RUN echo "[cxx]" >> /root/.buckconfig && \
     echo "  cxx    = /usr/bin/g++-5"        >> /root/.buckconfig && \
     echo "  cxxpp  = /usr/bin/g++-5"        >> /root/.buckconfig && \
     echo "  ld     = /usr/bin/g++-5"        >> /root/.buckconfig && \
-    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer -Weffc++ -Wextra" >> /root/.buckconfig && \
+    echo "  cxxflags = -std=c++14 ${CXXFLAGS} -Weffc++ -Wextra" >> /root/.buckconfig && \
     echo "[cxx#clang]" >> /root/.buckconfig && \
     echo "  cc     = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
     echo "  cpp    = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
@@ -147,7 +247,8 @@ RUN echo "[cxx]" >> /root/.buckconfig && \
     echo "  cxx    = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
     echo "  cxxpp  = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
     echo "  ld     = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
-    echo "cxxflags = -std=c++14 -O3 -g -fno-omit-frame-pointer -Wextra" >> /root/.buckconfig
+    echo "  cxxflags = -std=c++14 ${CXXFLAGS} -Wextra" >> /root/.buckconfig
+
 # Right now, if buckd is enabled in virtualbox one of two things will happen:
 #  - If the project is mounted on a virtualbox shared folders dir,
 #    mmap will not work, and https://github.com/facebook/buck/blob/master/src/com/facebook/buck/cxx/ObjectFileScrubbers.java
@@ -158,42 +259,5 @@ RUN echo "[cxx]" >> /root/.buckconfig && \
 #    cannot be deleted. Until one of these problems is fixed, it's a
 #    worse user experience to use buckd
 RUN echo 'if lspci | grep "VirtualBox" 2>&1 >/dev/null; then export NO_BUCKD=1; fi' >> /root/.bashrc
-
-#
-# Build the Cpp libraries.
-#
-
-# Download and install folly, build with clang or gcc-5 
-RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
-	  cd /usr/src/folly/folly && \
-    git checkout ${FOLLY_SHA} && \
-    autoreconf -ivf && \
-    ./configure && \
-    make && \
-    make install && \
-    make clean && \
-    rm -rf /usr/src/folly/.git
-
-# Download and install wangle, build with clang or gcc-5 
-RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
-    cd /usr/src/wangle/wangle && \
-    git checkout ${WANGLE_SHA} && \
-    CMAKE_C_COMPILER=${CC} CMAKE_CXX_COMPILER=${CXX} cmake . && \
-    make && \
-    make install && \
-    make clean && \
-    rm -rf /usr/src/wangle/.git
-
-# Download and install proxygen, build with clang or gcc-5  
-RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
-    cd /usr/src/proxygen/proxygen && \
-    git checkout ${PROXYGEN_SHA} && \
-    autoreconf -ivf && \
-    ./configure && \
-    make && \
-    make install && \
-	  make clean && \
-    rm -rf /usr/src/proxygen/.git
-
 
 WORKDIR /root
