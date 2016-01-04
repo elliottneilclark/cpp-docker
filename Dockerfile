@@ -16,22 +16,21 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
 
 # Add utils to enable changing apt lists
+# And then add them on.
 RUN apt-get update && \
     apt-get -qq -y install \
        apt-utils \
        python-software-properties \
        software-properties-common \
        wget && \
+    wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add - && \
+    add-apt-repository 'deb http://llvm.org/apt/wily/ llvm-toolchain-wily-3.7 main' && \
+    apt-add-repository ppa:ubuntu-toolchain-r/test && \
+    add-apt-repository ppa:webupd8team/java && \
     apt-get -qq clean && \
     apt-get -y -qq autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
     rm -rf /tmp/*
-
-# Add llvm and java repos
-RUN wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository 'deb http://llvm.org/apt/wily/ llvm-toolchain-wily-3.7 main' && \
-    apt-add-repository ppa:ubuntu-toolchain-r/test && \
-    add-apt-repository ppa:webupd8team/java
 
 # Install all of the prerequisites for folly, and install g++-5 to get c++14 features
 RUN apt-get -qq update && \
@@ -95,6 +94,10 @@ RUN apt-get -qq update && \
 # by us without that feature so that switching between clang
 # and gcc works
 #
+
+
+# Download Boost from fedora because the mirrors at source forge are awful.
+# They frequently just 404 because it's a day that ends in Y.
 RUN cd /usr/src && pwd && ls -alh && \
     wget http://pkgs.fedoraproject.org/repo/pkgs/boost/boost_1_59_0.tar.bz2/6aa9a5c6a4ca1016edd0ed1178e3cb87/boost_1_59_0.tar.bz2 && \
     tar xjf boost_1_59_0.tar.bz2 && \
@@ -108,7 +111,8 @@ RUN cd /usr/src && pwd && ls -alh && \
 RUN git clone https://github.com/google/double-conversion.git /usr/src/double-conversion && \
     cd /usr/src/double-conversion && \
     ldconfig && \
-    cmake -DBUILD_SHARED_LIBS=ON . && \
+    cmake -DCMAKE_BUILD_TYPE=Release \ 
+      -DBUILD_SHARED_LIBS=ON . && \
     make && \
     make install && \
     make clean && \
@@ -129,7 +133,8 @@ RUN git clone --depth 1 --branch v2.1.2 https://github.com/gflags/gflags.git /us
 RUN git clone --depth 1 https://github.com/google/googletest.git /usr/src/googletest && \
     cd /usr/src/googletest && \
     ldconfig && \
-    cmake -Dgtest_build_samples=ON . && \
+    cmake -DCMAKE_BUILD_TYPE=Release \ 
+      -Dgtest_build_samples=ON . && \
     make && \
     make install && \
     make clean && \
@@ -145,8 +150,6 @@ RUN git clone --depth 1 --branch v0.3.4 https://github.com/google/glog.git /usr/
     make clean && \
     rm -rf /usr/src/glog/.git
 
-
-
 # Download and install folly, build with clang or gcc-5 
 RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
 	  cd /usr/src/folly/folly && \
@@ -160,6 +163,12 @@ RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
     rm -rf /usr/src/folly/.git
 
 # Download and install wangle, build with clang or gcc-5 
+# Wangle has a hard coded CXXFLAGS so we have to sed them for now.
+# When they have an over-ridable default then this can go back to normal
+#
+# Also wangle's build of gmock doesn't seem to work at all.
+# Should figure out why.
+# Until then just don't build the tests
 RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
     cd /usr/src/wangle/wangle && \
     git checkout ${WANGLE_SHA} && \
@@ -217,37 +226,12 @@ RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
     make && \
     ln -s /usr/src/flint/flint/flint++ /usr/local/bin/flint++ 
   
-
 #
 # Now that buck is installed time to make the buckconfig
 #
-RUN echo "[cxx]" >> /root/.buckconfig && \
-    echo "  cc     = ${CC}"                 >> /root/.buckconfig && \
-    echo "  cpp    = ${CC}"                 >> /root/.buckconfig && \
-    echo "  aspp   = ${CC}"                 >> /root/.buckconfig && \
-    echo ""                                 >> /root/.buckconfig && \
-    echo "  cxx    = ${CXX}"                >> /root/.buckconfig && \
-    echo "  cxxpp  = ${CXX}"                >> /root/.buckconfig && \
-    echo "  ld     = ${CXX}"                >> /root/.buckconfig && \
-    echo "  cxxflags = -std=c++14 ${CXXFLAGS}" >> /root/.buckconfig && \
-    echo "[cxx#gcc]" >> /root/.buckconfig && \
-    echo "  cc     = /usr/bin/gcc-5"        >> /root/.buckconfig && \
-    echo "  cpp    = /usr/bin/gcc-5"        >> /root/.buckconfig && \
-    echo "  aspp   = /usr/bin/gcc-5"        >> /root/.buckconfig && \
-    echo ""                                 >> /root/.buckconfig && \
-    echo "  cxx    = /usr/bin/g++-5"        >> /root/.buckconfig && \
-    echo "  cxxpp  = /usr/bin/g++-5"        >> /root/.buckconfig && \
-    echo "  ld     = /usr/bin/g++-5"        >> /root/.buckconfig && \
-    echo "  cxxflags = -std=c++14 ${CXXFLAGS} -Weffc++ -Wextra" >> /root/.buckconfig && \
-    echo "[cxx#clang]" >> /root/.buckconfig && \
-    echo "  cc     = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
-    echo "  cpp    = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
-    echo "  aspp   = /usr/bin/clang-3.7"    >> /root/.buckconfig && \
-    echo ""                                 >> /root/.buckconfig && \
-    echo "  cxx    = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
-    echo "  cxxpp  = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
-    echo "  ld     = /usr/bin/clang++-3.7"  >> /root/.buckconfig && \
-    echo "  cxxflags = -std=c++14 ${CXXFLAGS} -Wextra" >> /root/.buckconfig
+ADD buckconfig /root/.buckconfig
+RUN sed -i -e "s|\$CXXFLAGS|${CXXFLAGS}|g" /root/.buckconfig && \
+  sed -i -e "s|\$CC|${CC}|g" -e "s|\$CXX|${CXX}|g" /root/.buckconfig
 
 # Right now, if buckd is enabled in virtualbox one of two things will happen:
 #  - If the project is mounted on a virtualbox shared folders dir,

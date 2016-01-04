@@ -1,0 +1,27 @@
+[cxx]
+  cc     = $CC 
+  cpp    = $CC 
+  aspp   = $CC 
+
+  cxx    = $CXX
+  cxxpp  = $CXX
+  ld     = $CXX
+  cxxflags = -std=c++14 $CXXFLAGS
+[cxx#gcc]
+  cc     = /usr/bin/gcc-5
+  cpp    = /usr/bin/gcc-5
+  aspp   = /usr/bin/gcc-5
+
+  cxx    = /usr/bin/g++-5
+  cxxpp  = /usr/bin/g++-5
+  ld     = /usr/bin/g++-5
+  cxxflags = -std=c++14 -Weffc++ -Wextra $CXXFLAGS
+[cxx#clang]
+  cc     = /usr/bin/clang-3.7
+  cpp    = /usr/bin/clang-3.7
+  aspp   = /usr/bin/clang-3.7
+
+  cxx    = /usr/bin/clang++-3.7
+  cxxpp  = /usr/bin/clang++-3.7
+  ld     = /usr/bin/clang++-3.7
+  cxxflags = -std=c++14 -Wextra $CXXFLAGS
