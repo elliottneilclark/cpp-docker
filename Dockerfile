@@ -230,7 +230,8 @@ RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
     cd /usr/src/flint/flint && \
     ldconfig && \
     make && \
-    ln -s /usr/src/flint/flint/flint++ /usr/local/bin/flint++ 
+    ln -s /usr/src/flint/flint/flint++ /usr/local/bin/flint++ && \
+    rm -rf /usr/src/flint/.git
   
 #
 # Now that buck is installed time to make the buckconfig
