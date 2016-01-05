@@ -5,11 +5,15 @@ ARG CXX=/usr/bin/g++-5
 ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 
-ARG FOLLY_SHA=f2a8b592861472bf47495c40519fdd778b420bc1 
-ARG WANGLE_SHA=9ed41ea931c1039d2eb80b9152577bbe714f9b71
-ARG PROXYGEN_SHA=d5721badd9e2a416036e2034112ea90c34918309 
+ARG FOLLY_SHA=43db7ae3a01bef16d95705aec6768702c8bf4090
+ARG WANGLE_SHA=d13285eec35bad4fc9239cba8b53e4054beccbe8
+ARG PROXYGEN_SHA=972370827485e18c8adaa168e6eb3ac87ab6d141
 ARG BUCK_SHA=82edf0bdbe63ef99cff17114458d4bd442a55fd7 
+ARG GTEST_SHA=13206d6f53aaff844f2d3595a01ac83a29e383db
+ARG DOUBLE_SHA=7499d0b6926e1a5a3d9deeb4c29b4f8bfc742c42
 ARG WATCHMAN_VER=v4.3.0
+ARG GFLAG_VER=v2.1.2
+ARG GLOG_VER=v0.3.4
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Accept the oracle java license
@@ -103,49 +107,51 @@ RUN cd /usr/src && pwd && ls -alh && \
     tar xjf boost_1_59_0.tar.bz2 && \
     cd boost_1_59_0 && \
     ./bootstrap.sh --with-toolset=gcc && \
-    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j4 && \
+    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
     ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
     ./b2 clean && \
     rm -rf /usr/src/boost_1_59_0.tar.bz2
 
 RUN git clone https://github.com/google/double-conversion.git /usr/src/double-conversion && \
     cd /usr/src/double-conversion && \
+    git checkout ${DOUBLE_SHA} && \
     ldconfig && \
     cmake -DCMAKE_BUILD_TYPE=Release \ 
       -DBUILD_SHARED_LIBS=ON . && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/double-conversion/.git
 
-RUN git clone --depth 1 --branch v2.1.2 https://github.com/gflags/gflags.git /usr/src/gflags && \
+RUN git clone --depth 1 --branch ${GFLAG_VER} https://github.com/gflags/gflags.git /usr/src/gflags && \
     cd /usr/src/gflags && \
     ldconfig && \
     cmake -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_STATIC_LIBS=ON \
       -DBUILD_SHARED_LIBS=ON \
       -DBUILD_TESTING=ON . && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/gflags/.git
     
 RUN git clone --depth 1 https://github.com/google/googletest.git /usr/src/googletest && \
     cd /usr/src/googletest && \
+    git checkout ${GTEST_SHA} && \
     ldconfig && \
     cmake -DCMAKE_BUILD_TYPE=Release \ 
       -Dgtest_build_samples=ON . && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/googletest/.git
 
-RUN git clone --depth 1 --branch v0.3.4 https://github.com/google/glog.git /usr/src/glog && \
+RUN git clone --depth 1 --branch ${GLOG_VER}  https://github.com/google/glog.git /usr/src/glog && \
     cd /usr/src/glog && \
     ldconfig && \
     autoreconf -ivf && \
     ./configure && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/glog/.git
@@ -157,7 +163,7 @@ RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
     ldconfig && \
     autoreconf -ivf && \
     ./configure && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/folly/.git
@@ -175,7 +181,7 @@ RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
     ldconfig && \
     sed -i 's/fPIC/fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -O2 -g/' CMakeLists.txt && \
     cmake -DBUILD_TESTS=OFF . && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/wangle/.git
@@ -187,7 +193,7 @@ RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
     ldconfig && \
     autoreconf -ivf && \
     ./configure && \
-    make && \
+    make -j2 && \
     make install && \
 	  make clean && \
     rm -rf /usr/src/proxygen/.git
@@ -202,7 +208,7 @@ RUN git clone --depth 1 --branch ${WATCHMAN_VER} https://github.com/facebook/wat
     ldconfig && \
     ./autogen.sh && \
     ./configure && \
-    make && \
+    make -j2 && \
     make install && \
     make clean && \
     rm -rf /usr/src/watchman/.git
@@ -230,8 +236,7 @@ RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
 # Now that buck is installed time to make the buckconfig
 #
 ADD buckconfig /root/.buckconfig
-RUN sed -i -e "s|\$CXXFLAGS|${CXXFLAGS}|g" /root/.buckconfig && \
-  sed -i -e "s|\$CC|${CC}|g" -e "s|\$CXX|${CXX}|g" /root/.buckconfig
+RUN sed -i -e "s|\${CXXFLAGS}|${CXXFLAGS}|g" -e "s|\${CC}|${CC}|g" -e "s|\${CXX}|${CXX}|g" /root/.buckconfig
 
 # Right now, if buckd is enabled in virtualbox one of two things will happen:
 #  - If the project is mounted on a virtualbox shared folders dir,
