@@ -5,13 +5,13 @@ ARG CXX=/usr/bin/g++-5
 ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 
-ARG FOLLY_SHA=43db7ae3a01bef16d95705aec6768702c8bf4090
-ARG WANGLE_SHA=d13285eec35bad4fc9239cba8b53e4054beccbe8
-ARG PROXYGEN_SHA=972370827485e18c8adaa168e6eb3ac87ab6d141
-ARG BUCK_SHA=82edf0bdbe63ef99cff17114458d4bd442a55fd7 
+ARG FOLLY_SHA=787e185c7cdc7f102a32711704b0a2a53d7f3e6e
+ARG WANGLE_SHA=125a6866c524c0201c42e4c80bf5465cff0b1c59
+ARG PROXYGEN_SHA=1ca829630602e7fb1c0fcf761d1df5c735f32785
+ARG BUCK_SHA=ebab5ef25ec714819a5a34d3720e27ec191b8659
 ARG GTEST_SHA=13206d6f53aaff844f2d3595a01ac83a29e383db
 ARG DOUBLE_SHA=7499d0b6926e1a5a3d9deeb4c29b4f8bfc742c42
-ARG WATCHMAN_VER=v4.3.0
+ARG WATCHMAN_VER=v4.5.0
 ARG GFLAG_VER=v2.1.2
 ARG GLOG_VER=v0.3.4
 ARG DEBIAN_FRONTEND=noninteractive
@@ -139,7 +139,7 @@ RUN git clone --depth 1 --branch ${GFLAG_VER} https://github.com/gflags/gflags.g
     make clean && \
     rm -rf /usr/src/gflags/.git
     
-RUN git clone --depth 1 https://github.com/google/googletest.git /usr/src/googletest && \
+RUN git clone https://github.com/google/googletest.git /usr/src/googletest && \
     cd /usr/src/googletest && \
     git checkout ${GTEST_SHA} && \
     ldconfig && \
