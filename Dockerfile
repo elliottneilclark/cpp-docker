@@ -5,10 +5,10 @@ ARG CXX=/usr/bin/g++-5
 ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 
-ARG FOLLY_SHA=a1b77701d8619afc907ba0408d03aadecf852e02
+ARG FOLLY_SHA=e756d07cd35714d7528444321ea5145b41f5ae0f
 ARG WANGLE_SHA=d67b7632be2923de3695201c7ac361f50646bbbf
 ARG PROXYGEN_SHA=ab90f2a9f0709180a2df726278d8692a5da11c79
-ARG BUCK_SHA=ac9d60eb155f9fdfa946cb23d17adafa8ab8609c1
+ARG BUCK_SHA=b5c1b24d8f25be5c96e8bce0a70c4665870a5749
 ARG GTEST_SHA=13206d6f53aaff844f2d3595a01ac83a29e383db
 ARG DOUBLE_SHA=7499d0b6926e1a5a3d9deeb4c29b4f8bfc742c42
 ARG WATCHMAN_VER=v4.5.0
@@ -21,12 +21,12 @@ RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true 
 
 # Add utils to enable changing apt lists
 # And then add them on.
-RUN apt-get update && \
-    apt-get -qq -y install \
-       apt-utils \
-       python-software-properties \
-       software-properties-common \
-       wget && \
+RUN apt-get -y update && \
+    apt-get -y install \
+        apt-utils \
+        python-software-properties \
+        software-properties-common \
+        wget && \
     wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add - && \
     add-apt-repository 'deb http://llvm.org/apt/wily/ llvm-toolchain-wily-3.7 main' && \
     apt-add-repository ppa:ubuntu-toolchain-r/test && \
@@ -37,8 +37,8 @@ RUN apt-get update && \
     rm -rf /tmp/*
 
 # Install all of the prerequisites for folly, and install g++-5 to get c++14 features
-RUN apt-get -qq update && \
-    apt-get -y -qq install \ 
+RUN apt-get -y update && \
+    apt-get -y install \
 		    ant \
         autoconf \
         autoconf-archive \
@@ -107,8 +107,8 @@ RUN cd /usr/src && pwd && ls -alh && \
     tar xjf boost_1_59_0.tar.bz2 && \
     cd boost_1_59_0 && \
     ./bootstrap.sh --with-toolset=gcc && \
-    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
-    ./b2 --toolset=gcc link=static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
+    ./b2 --toolset=gcc cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
+    ./b2 --toolset=gcc cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
     ./b2 clean && \
     rm -rf /usr/src/boost_1_59_0.tar.bz2
 
@@ -188,6 +188,11 @@ RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
     make -j2 && \
     make install && \
     make clean && \
+    sed -i 's/wangle STATIC/wangle SHARED/' CMakeLists.txt && \
+    cmake -DBUILD_TESTS=OFF . && \
+    make -j2 && \
+    make install && \
+    make clean && \
     rm -rf /usr/src/wangle/.git
 
 # Download and install proxygen, build with clang or gcc-5  
@@ -225,7 +230,7 @@ RUN git clone https://github.com/facebook/buck.git /usr/src/buck && \
     ant && \
     ln -s /usr/src/buck/bin/buck /usr/local/bin/buck && \
     ln -s /usr/src/buck/bin/buckd /usr/local/bin/buckd && \
-    /usr/local/bin/buck --help || true && \
+    ( /usr/local/bin/buck --help || true ) &&  \
     rm -rf /usr/src/buck/.git && \
     rm -rf /usr/src/buck/test
 
