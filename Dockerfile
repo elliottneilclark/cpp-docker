@@ -254,4 +254,6 @@ RUN sed -i -e "s|\${CXXFLAGS}|${CXXFLAGS}|g" -e "s|\${CC}|${CC}|g" -e "s|\${CXX}
 #    worse user experience to use buckd
 RUN echo 'if lspci | grep "VirtualBox" 2>&1 >/dev/null; then export NO_BUCKD=1; fi' >> /root/.bashrc
 
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/src/buck/bin
+
 WORKDIR /root
