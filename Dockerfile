@@ -107,8 +107,8 @@ RUN cd /usr/src && pwd && ls -alh && \
     tar xjf boost_1_59_0.tar.bz2 && \
     cd boost_1_59_0 && \
     ./bootstrap.sh --with-toolset=gcc && \
-    ./b2 --toolset=gcc cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
-    ./b2 --toolset=gcc cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
+    ./b2 --toolset=gcc link=shared,static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
+    ./b2 --toolset=gcc link=shared,static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
     ./b2 clean && \
     rm -rf /usr/src/boost_1_59_0.tar.bz2
 
