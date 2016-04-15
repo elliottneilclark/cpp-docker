@@ -16,8 +16,6 @@ ARG GFLAG_VER=v2.1.2
 ARG GLOG_VER=v0.3.4
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Accept the oracle java license
-RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
 
 # Add utils to enable changing apt lists
 # And then add them on.
@@ -30,7 +28,6 @@ RUN apt-get -y update && \
     wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add - && \
     add-apt-repository 'deb http://llvm.org/apt/wily/ llvm-toolchain-wily-3.7 main' && \
     apt-add-repository ppa:ubuntu-toolchain-r/test && \
-    add-apt-repository ppa:webupd8team/java && \
     apt-get -qq clean && \
     apt-get -y -qq autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
@@ -39,7 +36,7 @@ RUN apt-get -y update && \
 # Install all of the prerequisites for folly, and install g++-5 to get c++14 features
 RUN apt-get -y update && \
     apt-get -y install \
-		    ant \
+        ant \
         autoconf \
         autoconf-archive \
         automake \
@@ -73,7 +70,7 @@ RUN apt-get -y update && \
         lldb \
         llvm-3.7-dev \
         make \
-        oracle-java8-installer \
+        openjdk-8-jdk \
         pciutils \
         pkg-config \
         python-dev \
