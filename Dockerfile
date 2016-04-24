@@ -1,21 +1,23 @@
-FROM ubuntu:15.10
+FROM ubuntu:16.04
 
 ARG CC=/usr/bin/gcc-5
 ARG CXX=/usr/bin/g++-5
-ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
-ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O3 -pthread"
 
-ARG FOLLY_SHA=e756d07cd35714d7528444321ea5145b41f5ae0f
-ARG WANGLE_SHA=d67b7632be2923de3695201c7ac361f50646bbbf
-ARG PROXYGEN_SHA=ab90f2a9f0709180a2df726278d8692a5da11c79
-ARG BUCK_SHA=b5c1b24d8f25be5c96e8bce0a70c4665870a5749
-ARG GTEST_SHA=13206d6f53aaff844f2d3595a01ac83a29e383db
+# Until gcc 5.2 has "ICE in record_target_from_binfo" fixed
+# we need to use -O2
+ARG CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -fno-omit-frame-pointer -O2 -pthread"
+ARG CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -std=c++14 -fPIC -g -fno-omit-frame-pointer -O2 -pthread"
+
+ARG FOLLY_SHA=d78429749bc315b744e1c7ae5f0969fbdf31ca3d
+ARG WANGLE_SHA=29451338fdb05ca1691c102ab98e824b438ff90a
+ARG PROXYGEN_SHA=57f368a7b7cf2b6d6a1ae4d4bd5acf9289ba9b42
+ARG BUCK_SHA=673c14330b16b9e86ea425ad3d369dc28f8ae83a
+ARG GTEST_SHA=d225acc90bc3a8c420a9bcd1f033033c1ccd7fe0
 ARG DOUBLE_SHA=7499d0b6926e1a5a3d9deeb4c29b4f8bfc742c42
 ARG WATCHMAN_VER=v4.5.0
 ARG GFLAG_VER=v2.1.2
 ARG GLOG_VER=v0.3.4
 ARG DEBIAN_FRONTEND=noninteractive
-
 
 # Add utils to enable changing apt lists
 # And then add them on.
@@ -26,8 +28,7 @@ RUN apt-get -y update && \
         software-properties-common \
         wget && \
     wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository 'deb http://llvm.org/apt/wily/ llvm-toolchain-wily-3.7 main' && \
-    apt-add-repository ppa:ubuntu-toolchain-r/test && \
+    add-apt-repository 'deb http://llvm.org/apt/xenial/ llvm-toolchain-xenial-3.8 main' && \
     apt-get -qq clean && \
     apt-get -y -qq autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
@@ -43,9 +44,9 @@ RUN apt-get -y update && \
         binutils-dev \
         bison \
         build-essential \
-        clang-3.7 \
-        clang-format-3.7 \
-        clang-tidy-3.7 \
+        clang-3.8 \
+        clang-format-3.8 \
+        clang-tidy-3.8 \
         cmake \
         curl \
         flex \
@@ -68,7 +69,7 @@ RUN apt-get -y update && \
         libtool \
         libunwind8-dev \
         lldb \
-        llvm-3.7-dev \
+        llvm-3.8-dev \
         make \
         openjdk-8-jdk \
         pciutils \
@@ -78,8 +79,9 @@ RUN apt-get -y update && \
         zlib1g-dev && \
     apt-get -qq clean && \
     apt-get -y -qq autoremove && \
-    ln -s /usr/bin/clang-3.7 /usr/bin/clang && \
-    ln -s /usr/bin/clang++-3.7 /usr/bin/clang++ && \
+    ln -s /usr/bin/clang-3.8 /usr/bin/clang && \
+    ln -s /usr/bin/clang-format-3.8 /usr/bin/clang-format && \
+    ln -s /usr/bin/clang++-3.8 /usr/bin/clang++ && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
     rm -rf /tmp/*
 
@@ -88,7 +90,7 @@ RUN apt-get -y update && \
 
 #
 # Build the Cpp libraries.
-# 
+#
 # GCC 5.1 and libstdc++ devs are jerks.
 # They added in a a new abi tag without bumping soname
 # Because of that every c++ library needs to be compiled
@@ -100,14 +102,14 @@ RUN apt-get -y update && \
 # Download Boost from fedora because the mirrors at source forge are awful.
 # They frequently just 404 because it's a day that ends in Y.
 RUN cd /usr/src && pwd && ls -alh && \
-    wget http://pkgs.fedoraproject.org/repo/pkgs/boost/boost_1_59_0.tar.bz2/6aa9a5c6a4ca1016edd0ed1178e3cb87/boost_1_59_0.tar.bz2 && \
-    tar xjf boost_1_59_0.tar.bz2 && \
-    cd boost_1_59_0 && \
+    wget http://pkgs.fedoraproject.org/repo/pkgs/boost/boost_1_60_0.tar.bz2/65a840e1a0b13a558ff19eeb2c4f0cbe/boost_1_60_0.tar.bz2 && \
+    tar xjf boost_1_60_0.tar.bz2 && \
+    cd boost_1_60_0 && \
     ./bootstrap.sh --with-toolset=gcc && \
     ./b2 --toolset=gcc link=shared,static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" -j2 && \
     ./b2 --toolset=gcc link=shared,static cxxflags="${CXXFLAGS}" cflags="${CFLAGS}" install && \
     ./b2 clean && \
-    rm -rf /usr/src/boost_1_59_0.tar.bz2
+    rm -rf /usr/src/boost_1_60_0.tar.bz2
 
 RUN git clone https://github.com/google/double-conversion.git /usr/src/double-conversion && \
     cd /usr/src/double-conversion && \
@@ -135,12 +137,12 @@ RUN git clone --depth 1 --branch ${GFLAG_VER} https://github.com/gflags/gflags.g
     make install && \
     make clean && \
     rm -rf /usr/src/gflags/.git
-    
+
 RUN git clone https://github.com/google/googletest.git /usr/src/googletest && \
     cd /usr/src/googletest && \
     git checkout ${GTEST_SHA} && \
     ldconfig && \
-    cmake -DCMAKE_BUILD_TYPE=Release \ 
+    cmake -DCMAKE_BUILD_TYPE=Release \
       -Dgtest_build_samples=ON . && \
     make -j2 && \
     make install && \
@@ -157,19 +159,19 @@ RUN git clone --depth 1 --branch ${GLOG_VER}  https://github.com/google/glog.git
     make clean && \
     rm -rf /usr/src/glog/.git
 
-# Download and install folly, build with clang or gcc-5 
+# Download and install folly, build with clang or gcc-5
 RUN git clone https://github.com/facebook/folly.git /usr/src/folly && \
-	  cd /usr/src/folly/folly && \
+    cd /usr/src/folly/folly && \
     git checkout ${FOLLY_SHA} && \
     ldconfig && \
     autoreconf -ivf && \
     ./configure && \
-    make -j2 && \
+    make && \
     make install && \
     make clean && \
     rm -rf /usr/src/folly/.git
 
-# Download and install wangle, build with clang or gcc-5 
+# Download and install wangle, build with clang or gcc-5
 # Wangle has a hard coded CXXFLAGS so we have to sed them for now.
 # When they have an over-ridable default then this can go back to normal
 #
@@ -192,7 +194,7 @@ RUN git clone https://github.com/facebook/wangle.git /usr/src/wangle && \
     make clean && \
     rm -rf /usr/src/wangle/.git
 
-# Download and install proxygen, build with clang or gcc-5  
+# Download and install proxygen, build with clang or gcc-5
 RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
     cd /usr/src/proxygen/proxygen && \
     git checkout ${PROXYGEN_SHA} && \
@@ -201,7 +203,7 @@ RUN git clone https://github.com/facebook/proxygen.git /usr/src/proxygen && \
     ./configure && \
     make -j2 && \
     make install && \
-	  make clean && \
+    make clean && \
     rm -rf /usr/src/proxygen/.git
 
 #
@@ -238,7 +240,7 @@ RUN git clone https://github.com/L2Program/FlintPlusPlus.git /usr/src/flint && \
     make && \
     ln -s /usr/src/flint/flint/flint++ /usr/local/bin/flint++ && \
     rm -rf /usr/src/flint/.git
-  
+
 #
 # Now that buck is installed time to make the buckconfig
 #
