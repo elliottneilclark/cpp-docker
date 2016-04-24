@@ -17,11 +17,11 @@
   ld     = /usr/bin/g++-5
   cxxflags = -std=c++14 -Weffc++ -Wextra ${CXXFLAGS}
 [cxx#clang]
-  cc     = /usr/bin/clang-3.7
-  cpp    = /usr/bin/clang-3.7
-  aspp   = /usr/bin/clang-3.7
+  cc     = /usr/bin/clang
+  cpp    = /usr/bin/clang
+  aspp   = /usr/bin/clang
 
-  cxx    = /usr/bin/clang++-3.7
-  cxxpp  = /usr/bin/clang++-3.7
-  ld     = /usr/bin/clang++-3.7
+  cxx    = /usr/bin/clang++
+  cxxpp  = /usr/bin/clang++
+  ld     = /usr/bin/clang++
   cxxflags = -std=c++14 -Wextra ${CXXFLAGS}
