@@ -1,0 +1,11 @@
+{
+  "run_list": [
+    "fbcode::default",
+    "fbcode::misc"
+  ],
+  "fb_code" : {
+    "build": {
+      "install_prefix": "/usr/local"
+    }
+  }
+}
