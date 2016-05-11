@@ -1,0 +1,30 @@
+[cxx]
+  cc     = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cc'] %>
+  cpp    = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cc'] %>
+  aspp   = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cc'] %>
+
+  cxx    = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cxx'] %>
+  cxxpp  = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cxx'] %>
+  ld     = <%= node['fb_code']['buck'][node['fb_code']['buck']['default_compiler']]['cxx'] %>
+  cxxflags = -std=c++14 -Wextra <%= node['fb_code']['build']['cxxflags'] %>
+
+[cxx#gcc]
+  cc     = <%= node['fb_code']['buck']['gcc']['cc'] %>
+  cpp    = <%= node['fb_code']['buck']['gcc']['cc'] %>
+  aspp   = <%= node['fb_code']['buck']['gcc']['cc'] %>
+
+  cxx    = <%= node['fb_code']['buck']['gcc']['cxx'] %>
+  cxxpp  = <%= node['fb_code']['buck']['gcc']['cxx'] %>
+  ld     = <%= node['fb_code']['buck']['gcc']['cxx'] %>
+  cxxflags = -std=c++14 -Wextra <%= node['fb_code']['build']['cxxflags'] %>
+
+[cxx#clang]
+  cc     = <%= node['fb_code']['buck']['clang']['cc'] %>
+  cpp    = <%= node['fb_code']['buck']['clang']['cc'] %>
+  aspp   = <%= node['fb_code']['buck']['clang']['cc'] %>
+
+  cxx    = <%= node['fb_code']['buck']['clang']['cxx'] %>
+  cxxpp  = <%= node['fb_code']['buck']['clang']['cxx'] %>
+  ld     = <%= node['fb_code']['buck']['clang']['cxx'] %>
+  cxxflags = -std=c++14 -Wextra <%= node['fb_code']['build']['cxxflags'] %>
+
