@@ -1,4 +1,4 @@
-config, = BuildEnv.get_settings(node, 'folly', [])
+config, = BuildEnv.get_settings(node, 'gcc', [])
 unless config['install'] then return end
 
 package [
